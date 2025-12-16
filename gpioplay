@@ -3,7 +3,8 @@
 set -uo pipefail
 
 CHIP=${CHIP:-0}
-GPIO=${GPIO:-23}
+GPIO=${GPIO:-16}
+SONG=""
 
 cd "$(dirname "$0")"
 
@@ -77,7 +78,9 @@ gpiod_version() {
     echo $VERSION
 }
 
-list_songs() {
+usage() {
+  echo
+  echo -e "${COLOR_INFO}Usage: $0 [-c/--chip <chip_id>] [-g/--gpio <gpio>] <song>${COLOR_END}"
   echo
   echo -e "${COLOR_INFO}Existing songs:${COLOR_END}"
   for SONG in `ls ./songs/*.notes`
@@ -85,7 +88,31 @@ list_songs() {
     SONG=$( echo $SONG | sed 's|./songs/||' | sed 's|.notes||' )
     echo -e "${COLOR_INFO}  * ${SONG}${COLOR_END}"
   done
+  echo
 }
+
+# -----------------------------------------------------------------------------
+# Parse arguments
+# -----------------------------------------------------------------------------
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -c|--chip)
+      CHIP="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -g|--gpio)
+      GPIO="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    *)
+      SONG="$1" # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
 
 # -----------------------------------------------------------------------------
 # Checks
@@ -101,22 +128,19 @@ then
   exit 1
 fi
 
-# Show usages if called without parameters
-if [ $# -ne 1 ] 
+# Check the song exists
+if [ "$SONG" == "" ]; 
 then
-  echo -e "${COLOR_ERROR}Usage: $0 <song>${COLOR_END}"
-  list_songs
-  echo
+  echo -e "${COLOR_ERROR}You have to pass at least a song name as argument${COLOR_END}"
+  usage
   exit 2
 fi
-SONG="$1"
 
 # Check the song exists
 if [ ! -e ./songs/$SONG.notes ]; 
 then
   echo -e "${COLOR_ERROR}The song does not exist${COLOR_END}"
-  list_songs
-  echo
+  usage
   exit 3
 fi
 
